@@ -3,6 +3,7 @@ from .base import BaseModel
 from sqlalchemy.orm import validates, relationship
 
 class Category(BaseModel):
+    """Model representing a game category for crowdfunding platform."""
     __tablename__ = 'categories'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -14,16 +15,40 @@ class Category(BaseModel):
     
     @validates('name')
     def validate_name(self, key, name):
+        """Validate the category name meets minimum length requirements.
+        
+        Args:
+            key (str): The field name being validated
+            name (str): The category name to validate
+            
+        Returns:
+            str: The validated category name
+        """
         return self.validate_string_length('Category name', name, min_length=2)
         
     @validates('description')
     def validate_description(self, key, description):
+        """Validate the category description meets minimum length requirements.
+        
+        Args:
+            key (str): The field name being validated
+            description (str): The description to validate
+            
+        Returns:
+            str: The validated description
+        """
         return self.validate_string_length('Description', description, min_length=10, allow_none=True)
     
     def __repr__(self):
+        """Return string representation of the Category object."""
         return f'<Category {self.name}>'
         
     def to_dict(self):
+        """Convert the Category object to a dictionary representation.
+        
+        Returns:
+            dict: Dictionary containing category data with game count
+        """
         return {
             'id': self.id,
             'name': self.name,
