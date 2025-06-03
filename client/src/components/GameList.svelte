@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import Pagination from './Pagination.svelte';
 
     interface Game {
         id: number;
@@ -9,16 +10,67 @@
         category_name?: string;
     }
 
+    interface PaginationInfo {
+        current_page: number;
+        total_pages: number;
+        total: number;
+        per_page: number;
+        has_next: boolean;
+        has_prev: boolean;
+    }
+
+    interface GamesResponse {
+        games: Game[];
+        pagination: PaginationInfo;
+    }
+
     export let games: Game[] = [];
     let loading = true;
     let error: string | null = null;
+    let pagination: PaginationInfo | null = null;
+    
+    // Pagination state
+    let currentPage = 1;
+    let perPage = 12;
 
-    const fetchGames = async () => {
+    // Get initial pagination parameters from URL
+    function getUrlParams() {
+        if (typeof window === 'undefined') return { page: 1, per_page: 12 };
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        return {
+            page: parseInt(urlParams.get('page') || '1'),
+            per_page: parseInt(urlParams.get('per_page') || '12')
+        };
+    }
+
+    // Update URL with pagination parameters
+    function updateUrl(page: number, per_page: number) {
+        if (typeof window === 'undefined') return;
+        
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page.toString());
+        url.searchParams.set('per_page', per_page.toString());
+        
+        // Update URL without page reload
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    const fetchGames = async (page: number = 1, per_page: number = 12) => {
         loading = true;
+        error = null;
+        
         try {
-            const response = await fetch('/api/games');
+            const response = await fetch(`/api/games?page=${page}&per_page=${per_page}`);
             if(response.ok) {
-                games = await response.json();
+                const data: GamesResponse = await response.json();
+                games = data.games;
+                pagination = data.pagination;
+                currentPage = page;
+                perPage = per_page;
+                
+                // Update URL to reflect current state
+                updateUrl(page, per_page);
             } else {
                 error = `Failed to fetch data: ${response.status} ${response.statusText}`;
             }
@@ -29,8 +81,19 @@
         }
     };
 
+    // Handle page change
+    function handlePageChange(event: CustomEvent<{ page: number }>) {
+        fetchGames(event.detail.page, perPage);
+    }
+
+    // Handle per page change
+    function handlePerPageChange(event: CustomEvent<{ perPage: number }>) {
+        fetchGames(1, event.detail.perPage); // Reset to page 1 when changing per page
+    }
+
     onMount(() => {
-        fetchGames();
+        const urlParams = getUrlParams();
+        fetchGames(urlParams.page, urlParams.per_page);
     });
 </script>
 
@@ -40,7 +103,7 @@
     {#if loading}
         <!-- loading animation -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {#each Array(6) as _, i}
+            {#each Array(perPage) as _, i}
                 <div class="bg-slate-800/60 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-slate-700/50">
                     <div class="p-6">
                         <div class="animate-pulse">
@@ -109,5 +172,14 @@
                 </a>
             {/each}
         </div>
+
+        <!-- Pagination -->
+        {#if pagination && pagination.total_pages > 1}
+            <Pagination 
+                {pagination} 
+                on:pageChange={handlePageChange}
+                on:perPageChange={handlePerPageChange}
+            />
+        {/if}
     {/if}
 </div>
