@@ -131,4 +131,101 @@ test.describe('Game Listing and Navigation', () => {
     // We expect the page to not crash and still have a valid title
     await expect(page).toHaveTitle(/Game Details - Tailspin Toys/);
   });
+
+  test('should display pagination controls when there are multiple pages', async ({ page }) => {
+    // Navigate to home page with smaller page size to ensure pagination
+    await page.goto('/?page=1&per_page=6');
+    
+    // Wait for games to load
+    await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
+    
+    // Check that pagination controls are visible
+    const paginationNav = page.locator('nav[aria-label="Pagination Navigation"]');
+    await expect(paginationNav).toBeVisible();
+    
+    // Check that page buttons are present
+    const pageButtons = page.locator('button[aria-label*="Go to page"]');
+    await expect(pageButtons.first()).toBeVisible();
+    
+    // Check that next/previous buttons are present
+    const nextButton = page.locator('button[aria-label="Go to next page"]');
+    const prevButton = page.locator('button[aria-label="Go to previous page"]');
+    await expect(nextButton).toBeVisible();
+    await expect(prevButton).toBeVisible();
+    
+    // On first page, previous should be disabled
+    await expect(prevButton).toBeDisabled();
+    await expect(nextButton).toBeEnabled();
+  });
+
+  test('should navigate between pages correctly', async ({ page }) => {
+    // Start on page 1 with 6 items per page
+    await page.goto('/?page=1&per_page=6');
+    await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
+    
+    // Check we have 6 games on the first page
+    const gameCards = page.locator('[data-testid="game-card"]');
+    await expect(gameCards).toHaveCount(6);
+    
+    // Click next page
+    const nextButton = page.locator('button[aria-label="Go to next page"]');
+    await nextButton.click();
+    
+    // Wait for page to update
+    await page.waitForTimeout(1000);
+    
+    // Verify URL changed to page 2
+    await expect(page).toHaveURL('/?page=2&per_page=6');
+    
+    // Verify we still have 6 games on page 2
+    await expect(gameCards).toHaveCount(6);
+    
+    // Previous button should now be enabled
+    const prevButton = page.locator('button[aria-label="Go to previous page"]');
+    await expect(prevButton).toBeEnabled();
+  });
+
+  test('should change items per page correctly', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
+    
+    // Find the per-page selector
+    const perPageSelect = page.locator('select[aria-label="Number of games per page"]');
+    await expect(perPageSelect).toBeVisible();
+    
+    // Change to 24 per page
+    await perPageSelect.selectOption('24');
+    
+    // Wait for page to update
+    await page.waitForTimeout(1000);
+    
+    // Verify URL updated
+    await expect(page).toHaveURL('/?page=1&per_page=24');
+    
+    // With 21 total games and 24 per page, should see all games on one page
+    const gameCards = page.locator('[data-testid="game-card"]');
+    await expect(gameCards).toHaveCount(21);
+    
+    // Pagination should not be visible when all items fit on one page
+    const paginationNav = page.locator('nav[aria-label="Pagination Navigation"]');
+    await expect(paginationNav).not.toBeVisible();
+  });
+
+  test('should show correct results info', async ({ page }) => {
+    await page.goto('/?page=1&per_page=6');
+    await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
+    
+    // Check the results info text
+    const resultsInfo = page.locator('text=/Showing \\d+ to \\d+ of \\d+ games/');
+    await expect(resultsInfo).toBeVisible();
+    await expect(resultsInfo).toContainText('Showing 1 to 6 of 21 games');
+    
+    // Navigate to page 2
+    const nextButton = page.locator('button[aria-label="Go to next page"]');
+    await nextButton.click();
+    await page.waitForTimeout(1000);
+    
+    // Check updated results info
+    await expect(resultsInfo).toContainText('Showing 7 to 12 of 21 games');
+  });
 });
