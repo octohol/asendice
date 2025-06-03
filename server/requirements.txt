@@ -2,3 +2,8 @@ flask
 sqlalchemy
 flask_sqlalchemy
 flask-cors
+# Development dependencies for code quality
+black
+isort
+flake8
+mypy

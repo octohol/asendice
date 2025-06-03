@@ -27,6 +27,17 @@ jobs:
       - name: Install Python dependencies
         run: bash ./scripts/setup-env.sh
         
+      - name: Run Python linting checks
+        run: |
+          source venv/bin/activate
+          echo "Running Black formatting check..."
+          black --check server/
+          echo "Running isort import sorting check..."
+          isort --check-only server/
+          echo "Running flake8 linting..."
+          flake8 server/
+          echo "Running mypy type checking..."
+          mypy server/ --ignore-missing-imports
 
       - name: Run Flask unit tests
         run: bash ./scripts/run-server-tests.sh

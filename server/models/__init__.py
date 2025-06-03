@@ -7,9 +7,10 @@ from .category import Category
 from .game import Game
 from .publisher import Publisher
 
+
 def init_db(app, testing: bool = False):
     """Initialize the database
-    
+
     Args:
         app: The Flask application instance
         testing: If True, allows reinitialization for testing
@@ -23,7 +24,7 @@ def init_db(app, testing: bool = False):
         except RuntimeError:
             # Database already initialized
             pass
-    
+
     # Create tables when initializing
     with app.app_context():
         db.create_all()
