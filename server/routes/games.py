@@ -6,6 +6,11 @@ from sqlalchemy.orm import Query
 games_bp = Blueprint('games', __name__)
 
 def get_games_base_query() -> Query:
+    """Create a base query for games with publisher and category joined.
+    
+    Returns:
+        Query: SQLAlchemy query object with joined publisher and category tables
+    """
     return db.session.query(Game).join(
         Publisher, 
         Game.publisher_id == Publisher.id, 
@@ -18,6 +23,11 @@ def get_games_base_query() -> Query:
 
 @games_bp.route('/api/games', methods=['GET'])
 def get_games() -> Response:
+    """Get all games with their publisher and category information.
+    
+    Returns:
+        Response: JSON response containing list of all games
+    """
     # Use the base query for all games
     games_query = get_games_base_query().all()
     
@@ -28,6 +38,14 @@ def get_games() -> Response:
 
 @games_bp.route('/api/games/<int:id>', methods=['GET'])
 def get_game(id: int) -> tuple[Response, int] | Response:
+    """Get a specific game by ID with its publisher and category information.
+    
+    Args:
+        id (int): The game ID to retrieve
+        
+    Returns:
+        Response: JSON response containing game data, or 404 error if not found
+    """
     # Use the base query and add filter for specific game
     game_query = get_games_base_query().filter(Game.id == id).first()
     
