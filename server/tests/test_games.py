@@ -168,5 +168,127 @@ class TestGamesRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['error'], "Game not found")
 
+    def test_get_categories_success(self) -> None:
+        """Test successful retrieval of all categories"""
+        # Act
+        response = self.client.get('/api/categories')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), len(self.TEST_DATA["categories"]))
+        
+        # Check structure
+        for category in data:
+            self.assertIn('id', category)
+            self.assertIn('name', category)
+            self.assertIsInstance(category['id'], int)
+            self.assertIsInstance(category['name'], str)
+
+    def test_get_publishers_success(self) -> None:
+        """Test successful retrieval of all publishers"""
+        # Act
+        response = self.client.get('/api/publishers')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), len(self.TEST_DATA["publishers"]))
+        
+        # Check structure
+        for publisher in data:
+            self.assertIn('id', publisher)
+            self.assertIn('name', publisher)
+            self.assertIsInstance(publisher['id'], int)
+            self.assertIsInstance(publisher['name'], str)
+
+    def test_filter_games_by_category(self) -> None:
+        """Test filtering games by category"""
+        # Get category ID for "Strategy"
+        response = self.client.get('/api/categories')
+        categories = self._get_response_data(response)
+        strategy_category = next(cat for cat in categories if cat['name'] == 'Strategy')
+        
+        # Act - filter by category
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id={strategy_category["id"]}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # All returned games should have the specified category
+        for game in data:
+            self.assertEqual(game['category']['id'], strategy_category['id'])
+            self.assertEqual(game['category']['name'], 'Strategy')
+
+    def test_filter_games_by_publisher(self) -> None:
+        """Test filtering games by publisher"""
+        # Get publisher ID for "DevGames Inc"
+        response = self.client.get('/api/publishers')
+        publishers = self._get_response_data(response)
+        devgames_publisher = next(pub for pub in publishers if pub['name'] == 'DevGames Inc')
+        
+        # Act - filter by publisher
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id={devgames_publisher["id"]}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # All returned games should have the specified publisher
+        for game in data:
+            self.assertEqual(game['publisher']['id'], devgames_publisher['id'])
+            self.assertEqual(game['publisher']['name'], 'DevGames Inc')
+
+    def test_filter_games_by_category_and_publisher(self) -> None:
+        """Test filtering games by both category and publisher"""
+        # Get IDs for filters
+        response = self.client.get('/api/categories')
+        categories = self._get_response_data(response)
+        card_game_category = next(cat for cat in categories if cat['name'] == 'Card Game')
+        
+        response = self.client.get('/api/publishers')
+        publishers = self._get_response_data(response)
+        scrum_masters_publisher = next(pub for pub in publishers if pub['name'] == 'Scrum Masters')
+        
+        # Act - filter by both category and publisher
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id={card_game_category["id"]}&publisher_id={scrum_masters_publisher["id"]}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # All returned games should have both the specified category and publisher
+        for game in data:
+            self.assertEqual(game['category']['id'], card_game_category['id'])
+            self.assertEqual(game['publisher']['id'], scrum_masters_publisher['id'])
+
+    def test_filter_games_nonexistent_category(self) -> None:
+        """Test filtering games by non-existent category returns empty list"""
+        # Act - filter by non-existent category
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id=999')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 0)
+
+    def test_filter_games_nonexistent_publisher(self) -> None:
+        """Test filtering games by non-existent publisher returns empty list"""
+        # Act - filter by non-existent publisher
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id=999')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 0)
+
 if __name__ == '__main__':
     unittest.main()
